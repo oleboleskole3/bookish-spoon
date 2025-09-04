@@ -9,15 +9,11 @@ DFPlayerMini_Fast myMP3;
 
 void setup()
 {
+  pinMode(13, INPUT_PULLUP);
   Serial.begin(115200);
 
-#if !defined(UBRR1H)
-  mySerial.begin(9600);
-  myMP3.begin(mySerial, true);
-#else
   Serial1.begin(9600);
   myMP3.begin(Serial1, true);
-#endif
   
   Serial.println("Setting volume to max");
   myMP3.volume(30);
@@ -26,7 +22,18 @@ void setup()
   myMP3.loop(15);
 }
 
+bool isDown = true;
+
 void loop()
 {
+  if (digitalRead(13) != isDown) {
+    // Something changed
+    if (digitalRead(13)) {
+      myMP3.loop(15);
+    } else {
+      myMP3.loop(16);
+    }
+    isDown = digitalRead(13);
+  }
   //do nothing
 }
