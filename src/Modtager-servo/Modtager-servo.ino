@@ -27,6 +27,11 @@ Servo myservo;  // create Servo object to control a servo
 
 /* Classes */
 
+struct TransitStruct {
+  uint8_t throttle;
+  uint8_t steer;
+};
+
 // Creating a new class that inherits from the ESP_NOW_Peer class is required.
 
 class ESP_NOW_Peer_Class : public ESP_NOW_Peer {
@@ -47,8 +52,14 @@ public:
   }
 
   // Function to print the received messages from the master
-  void onReceive(const uint8_t *data, size_t len, bool broadcast) {
-      myservo.write(*data);
+  void onReceive(const uint8_t* recieved, size_t len, bool broadcast) {
+    TransitStruct* data = (TransitStruct*) recieved;
+    myservo.write(((int16_t)data->steer) * 180 / 255);
+    analogWrite(22, data->throttle);
+    Serial.print("Steer: ");
+    Serial.print(data->steer);
+    Serial.print(", Throttle: ");
+    Serial.println(data->throttle);
     // Serial.printf("Received a message from master " MACSTR " (%s)\n", MAC2STR(addr()), broadcast ? "broadcast" : "unicast");
     // Serial.printf("  Message: %s\n", (char *)data);
   }
@@ -88,6 +99,7 @@ void register_new_master(const esp_now_recv_info_t *info, const uint8_t *data, i
 void setup() {
   Serial.begin(115200);
   myservo.attach(23);  // attaches the servo on pin 9 to the Servo object
+  pinMode(22, OUTPUT);
 
   // Initialize the Wi-Fi module
   WiFi.mode(WIFI_STA);

@@ -22,6 +22,11 @@
 
 /* Classes */
 
+struct TransitStruct {
+  uint8_t throttle;
+  uint8_t steer;
+};
+
 // Creating a new class that inherits from the ESP_NOW_Peer class is required.
 
 class ESP_NOW_Broadcast_Peer : public ESP_NOW_Peer {
@@ -98,11 +103,18 @@ void loop() {
   // char data[32];
   // snprintf(data, sizeof(data), "Hello, World! #%lu", analogRead(36));
 
-  uint8_t val = ((int)analogRead(36) * 180 / (4095));
+  TransitStruct data;
+  data.steer = analogRead(36) >> 4;
+  data.throttle = analogRead(39) >> 4;
+
+  Serial.print("Steer: ");
+  Serial.print(data.steer);
+  Serial.print(", Throttle: ");
+  Serial.println(data.throttle);
 
   // Serial.printf("Broadcasting message: %s\n", data);
 
-  if (!broadcast_peer.send_message((uint8_t *)&val, sizeof(val))) {
+  if (!broadcast_peer.send_message((uint8_t *)&data, sizeof(data))) {
     Serial.println("Failed to broadcast message");
   }
 
