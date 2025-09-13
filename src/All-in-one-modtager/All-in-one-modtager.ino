@@ -67,8 +67,7 @@ public:
 		Serial.print(", Throttle: ");
 		Serial.println(data->throttle);
 
-		frontServo.write(((int16_t)data->steer) * 180 / 255);
-		analogWrite(MOTOR_PIN, data->throttle);
+		lastMsg = *data;
 	}
 };
 
@@ -110,6 +109,7 @@ void register_new_master(const esp_now_recv_info_t *info, const uint8_t *data, i
 /* Main */
 
 Servo frontServo;
+TransitStruct lastMsg;
 
 void setup()
 {
@@ -163,5 +163,38 @@ void loop()
 		}
 	}
 
-	delay(100);
+	/* Main control code begin */
+
+	frontServo.write(((int16_t)lastMsg.steer) * 180 / 255);
+	// setMotorSpeed(lastMsg.throttle);
+
+	float dist = afstandssensor.afstandCM();
+
+	if (dist > 0)
+	{
+		if (dist < 50)
+		{
+			if (dist > 10)
+			{
+				float maxSpeed = dist * (255. / 25.);
+				float speed = fminf(lastMsg.throttle, maxSpeed);
+				speed = fminf(speed, 255); // max 255 before casting to uint8
+				setMotorSpeed((uint8_t)speed);
+			}
+			else
+			{
+				setMotorSpeed(0);
+			}
+		}
+		else
+		{
+			setMotorSpeed(lastMsg.throttle);
+		}
+	}
+
+	delay(20);
+}
+
+void setMotorSpeed(uint8_t speed) {
+	analogWrite(MOTOR_PIN, speed);
 }
