@@ -13,12 +13,14 @@
 
 #include "ESP32_NOW.h"
 #include "WiFi.h"
+#include <esp_mac.h>
 
-#include <esp_mac.h>  // For the MAC2STR and MACSTR macros
+/* Constants */
 
-/* Definitions */
+const int STEER_PIN = 36;
+const int THROTTLE_PIN = 39;
 
-#define ESPNOW_WIFI_CHANNEL 6
+const int ESPNOW_WIFI_CHANNEL = 6;
 
 /* Classes */
 
@@ -26,8 +28,6 @@ struct TransitStruct {
   uint8_t throttle;
   uint8_t steer;
 };
-
-// Creating a new class that inherits from the ESP_NOW_Peer class is required.
 
 class ESP_NOW_Broadcast_Peer : public ESP_NOW_Peer {
 public:
@@ -58,19 +58,18 @@ public:
   }
 };
 
-/* Global Variables */
 
-uint32_t msg_count = 0;
+/* Main */
 
 // Create a broadcast peer object
 ESP_NOW_Broadcast_Peer broadcast_peer(ESPNOW_WIFI_CHANNEL, WIFI_IF_STA, nullptr);
 
-/* Main */
-
 void setup() {
   Serial.begin(115200);
 
-  pinMode(36, INPUT);
+  // Init pins
+  pinMode(STEER_PIN, INPUT);
+  pinMode(THROTTLE_PIN, INPUT);
 
   // Initialize the Wi-Fi module
   WiFi.mode(WIFI_STA);
@@ -79,9 +78,6 @@ void setup() {
     delay(100);
   }
 
-  Serial.println("ESP-NOW Example - Broadcast Master");
-  Serial.println("Wi-Fi parameters:");
-  Serial.println("  Mode: STA");
   Serial.println("  MAC Address: " + WiFi.macAddress());
   Serial.printf("  Channel: %d\n", ESPNOW_WIFI_CHANNEL);
 
@@ -95,15 +91,13 @@ void setup() {
 
   Serial.printf("ESP-NOW version: %d, max data length: %d\n", ESP_NOW.getVersion(), ESP_NOW.getMaxDataLen());
 
-  Serial.println("Setup complete. Broadcasting messages every 5 seconds.");
+  Serial.println("Setup complete.");
+  Serial.println();
 }
 
 void loop() {
-  // Broadcast a message to all devices within the network
-  // char data[32];
-  // snprintf(data, sizeof(data), "Hello, World! #%lu", analogRead(36));
-
-  TransitStruct data;
+  static TransitStruct data;
+  
   data.steer = analogRead(36) >> 4;
   data.throttle = analogRead(39) >> 4;
 
@@ -118,5 +112,5 @@ void loop() {
     Serial.println("Failed to broadcast message");
   }
 
-  delay(59);
+  delay(50);
 }

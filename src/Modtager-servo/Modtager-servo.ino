@@ -12,18 +12,17 @@
 
 #include "ESP32_NOW.h"
 #include "WiFi.h"
-
-#include <esp_mac.h>  // For the MAC2STR and MACSTR macros
-
+#include <esp_mac.h>
 #include <vector>
-
 #include <Servo.h>
-Servo myservo;  // create Servo object to control a servo
 
 
-/* Definitions */
+/* Constants */
 
-#define ESPNOW_WIFI_CHANNEL 6
+const int FRONT_SERVO_PIN = 23;
+const int MOTOR_PIN = 22;
+
+const int ESPNOW_WIFI_CHANNEL = 6;
 
 /* Classes */
 
@@ -31,8 +30,6 @@ struct TransitStruct {
   uint8_t throttle;
   uint8_t steer;
 };
-
-// Creating a new class that inherits from the ESP_NOW_Peer class is required.
 
 class ESP_NOW_Peer_Class : public ESP_NOW_Peer {
 public:
@@ -53,15 +50,20 @@ public:
 
   // Function to print the received messages from the master
   void onReceive(const uint8_t* recieved, size_t len, bool broadcast) {
+    if (sizeof(TransitStruct) != len) {
+      Serial.printf("Wrong length packet recieved, len: %d, expected: %d", len, sizeof(TransitStruct));
+      return;
+    }
+    // Change datatype without reallocating
     TransitStruct* data = (TransitStruct*) recieved;
-    myservo.write(((int16_t)data->steer) * 180 / 255);
-    analogWrite(22, data->throttle);
+
     Serial.print("Steer: ");
     Serial.print(data->steer);
     Serial.print(", Throttle: ");
     Serial.println(data->throttle);
-    // Serial.printf("Received a message from master " MACSTR " (%s)\n", MAC2STR(addr()), broadcast ? "broadcast" : "unicast");
-    // Serial.printf("  Message: %s\n", (char *)data);
+
+    frontServo.write(((int16_t)data->steer) * 180 / 255);
+    analogWrite(MOTOR_PIN, data->throttle);
   }
 };
 
@@ -73,7 +75,8 @@ std::vector<ESP_NOW_Peer_Class *> masters;
 
 /* Callbacks */
 
-// Callback called when an unknown peer sends a message
+// Callback called when an unknown peer sends a message,
+// registers the peer as a master if the recieved messase is a broadcast
 void register_new_master(const esp_now_recv_info_t *info, const uint8_t *data, int len, void *arg) {
   if (memcmp(info->des_addr, ESP_NOW.BROADCAST_ADDR, 6) == 0) {
     Serial.printf("Unknown peer " MACSTR " sent a broadcast message\n", MAC2STR(info->src_addr));
@@ -96,10 +99,13 @@ void register_new_master(const esp_now_recv_info_t *info, const uint8_t *data, i
 
 /* Main */
 
+Servo frontServo;
+
 void setup() {
   Serial.begin(115200);
-  myservo.attach(23);  // attaches the servo on pin 9 to the Servo object
-  pinMode(22, OUTPUT);
+
+  frontServo.attach(FRONT_SERVO_PIN);
+  pinMode(MOTOR_PIN, OUTPUT);
 
   // Initialize the Wi-Fi module
   WiFi.mode(WIFI_STA);
@@ -108,9 +114,6 @@ void setup() {
     delay(100);
   }
 
-  Serial.println("ESP-NOW Example - Broadcast Slave");
-  Serial.println("Wi-Fi parameters:");
-  Serial.println("  Mode: STA");
   Serial.println("  MAC Address: " + WiFi.macAddress());
   Serial.printf("  Channel: %d\n", ESPNOW_WIFI_CHANNEL);
 
