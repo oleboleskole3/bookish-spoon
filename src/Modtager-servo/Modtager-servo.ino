@@ -21,9 +21,11 @@
 
 const int FRONT_SERVO_PIN = 23;
 const int MOTOR_PIN = 22;
+const int MOTOR_PIN_2 = 21;
 
 const int ESPNOW_WIFI_CHANNEL = 6;
 
+Servo frontServo;
 /* Classes */
 
 struct TransitStruct {
@@ -62,8 +64,16 @@ public:
     Serial.print(", Throttle: ");
     Serial.println(data->throttle);
 
-    frontServo.write(((int16_t)data->steer) * 180 / 255);
-    analogWrite(MOTOR_PIN, data->throttle);
+    // if (data->throttle > 127 + 15) {
+    //   analogWrite(MOTOR_PIN_2, min(((uint16_t) data->throttle - 127) * 3,255));
+    //   digitalWrite(MOTOR_PIN, LOW);
+    // }
+    // if (data->throttle < 127 - 15) {
+    //   analogWrite(MOTOR_PIN, (127 - data->throttle) * 2);
+    //   digitalWrite(MOTOR_PIN_2, LOW);
+    // }
+
+    // frontServo.write(((int16_t)data->steer) * 180 / 255);
   }
 };
 
@@ -98,11 +108,20 @@ void register_new_master(const esp_now_recv_info_t *info, const uint8_t *data, i
 }
 
 /* Main */
+void requestEvent() {
 
-Servo frontServo;
+  Wire.write(); // respond with message of 6 bytes
+
+  // as expected by master
+
+}
 
 void setup() {
   Serial.begin(115200);
+
+  Wire.begin(8);                // join i2c bus with address #8
+
+  Wire.onRequest(requestEvent); // register event
 
   frontServo.attach(FRONT_SERVO_PIN);
   pinMode(MOTOR_PIN, OUTPUT);
