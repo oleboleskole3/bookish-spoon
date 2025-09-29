@@ -1,10 +1,15 @@
 #include <Wire.h>
 #include <afstandssensor.h>
+#include <Servo.h>
 
                                         // AfstandsSensor(triggerPin, echoPin);
 AfstandsSensor afstandssensor(13, 12);  // Starter afstandssensoren på ben 13 og 12.
 
+Servo myservo;
+
 void setup () {
+
+    myservo.attach(9);
 
     pinMode(4 , OUTPUT); // A
     pinMode(5 , OUTPUT); // B
@@ -18,6 +23,8 @@ void setup () {
     digitalWrite(7, HIGH);
 
     Serial.begin(9600);  // Opsætter serial kommunikation tilbage til computeren
+
+    Serial.println("iyuib4");
 
     Wire.begin();
 }
@@ -34,6 +41,7 @@ TransitStruct data;
 void loop () {
 
     Wire.requestFrom(12,sizeof(data));
+    delay(10);
 
     int i = 0;
 
@@ -42,10 +50,16 @@ void loop () {
         byte b = Wire.read();
         ((byte*)&data)[i] = b;
 
+        Serial.println(b);
+
         i++;
 
 
     }
+
+    int angle = int( float(data.steer) * (90./255.) );
+
+    myservo.write( angle );
 
     // Måler afstanden for hver 20ms
 
@@ -68,7 +82,10 @@ void loop () {
         }
     }
 
-    
+    Serial.println();
+    Serial.print("Steer " + data.steer);
+    Serial.println();
+    Serial.print("Throttle " + data.throttle);
 
     delay(20);
 }
