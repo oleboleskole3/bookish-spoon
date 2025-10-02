@@ -15,6 +15,7 @@
 #include <esp_mac.h>
 #include <vector>
 #include <Servo.h>
+#include <SoftwareSerial.h>
 
 
 /* Constants */
@@ -24,12 +25,16 @@ const int MOTOR_PIN = 22;
 
 const int ESPNOW_WIFI_CHANNEL = 6;
 
+
+
 /* Classes */
 
 struct TransitStruct {
   uint8_t throttle;
   uint8_t steer;
 };
+
+TransitStruct lastPacket;
 
 class ESP_NOW_Peer_Class : public ESP_NOW_Peer {
 public:
@@ -55,15 +60,8 @@ public:
       return;
     }
     // Change datatype without reallocating
-    TransitStruct* data = (TransitStruct*) recieved;
+    lastPacket = *(TransitStruct*) recieved;
 
-    Serial.print("Steer: ");
-    Serial.print(data->steer);
-    Serial.print(", Throttle: ");
-    Serial.println(data->throttle);
-
-    frontServo.write(((int16_t)data->steer) * 180 / 255);
-    analogWrite(MOTOR_PIN, data->throttle);
   }
 };
 
@@ -100,6 +98,7 @@ void register_new_master(const esp_now_recv_info_t *info, const uint8_t *data, i
 /* Main */
 
 Servo frontServo;
+SoftwareSerial mySerial(22,23); // RX, TX
 
 void setup() {
   Serial.begin(115200);
@@ -131,6 +130,10 @@ void setup() {
   ESP_NOW.onNewPeer(register_new_master, nullptr);
 
   Serial.println("Setup complete. Waiting for a master to broadcast a message...");
+  mySerial.begin(9600);
+  mySerial.print(lastPacket.steer);
+  mySerial.print(",");
+  mySerial.println(lastPacket.throttle);
 }
 
 void loop() {
@@ -147,4 +150,12 @@ void loop() {
   }
 
   delay(100);
+
+  if (lastPacket.steer<100) mySerial.print('0');
+  if (lastPacket.steer<10) mySerial.print('0');
+  mySerial.print(lastPacket.steer);
+  mySerial.print(",");
+  if (lastPacket.throttle<100) mySerial.print('0');
+  if (lastPacket.throttle<10) mySerial.print('0');
+  mySerial.println(lastPacket.throttle);
 }
