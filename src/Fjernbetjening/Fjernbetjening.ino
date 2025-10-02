@@ -19,6 +19,7 @@
 
 const int STEER_PIN = 36;
 const int THROTTLE_PIN = 39;
+const int REVERSE_PIN = 4;
 
 const int ESPNOW_WIFI_CHANNEL = 6;
 
@@ -27,6 +28,7 @@ const int ESPNOW_WIFI_CHANNEL = 6;
 struct TransitStruct {
   uint8_t throttle;
   uint8_t steer;
+  bool reverse;
 };
 
 class ESP_NOW_Broadcast_Peer : public ESP_NOW_Peer {
@@ -70,6 +72,7 @@ void setup() {
   // Init pins
   pinMode(STEER_PIN, INPUT);
   pinMode(THROTTLE_PIN, INPUT);
+  pinMode(REVERSE_PIN, INPUT);
 
   // Initialize the Wi-Fi module
   WiFi.mode(WIFI_STA);
@@ -98,13 +101,16 @@ void setup() {
 void loop() {
   static TransitStruct data;
   
-  data.steer = analogRead(36) >> 4;
-  data.throttle = analogRead(39) >> 4;
+  data.steer = analogRead(STEER_PIN) >> 4;
+  data.throttle = analogRead(THROTTLE_PIN) >> 4;
+  data.reverse = digitalRead(REVERSE_PIN);
 
   Serial.print("Steer: ");
   Serial.print(data.steer);
   Serial.print(", Throttle: ");
-  Serial.println(data.throttle);
+  Serial.print(data.throttle);
+  Serial.print(", Reverse: ");
+  Serial.println(data.reverse);
 
   // Serial.printf("Broadcasting message: %s\n", data);
 
@@ -112,5 +118,5 @@ void loop() {
     Serial.println("Failed to broadcast message");
   }
 
-  delay(50);
+  delay(20);
 }

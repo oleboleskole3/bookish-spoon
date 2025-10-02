@@ -32,6 +32,7 @@ const int ESPNOW_WIFI_CHANNEL = 6;
 struct TransitStruct {
   uint8_t throttle;
   uint8_t steer;
+  bool reverse;
 };
 
 TransitStruct lastPacket;
@@ -131,9 +132,6 @@ void setup() {
 
   Serial.println("Setup complete. Waiting for a master to broadcast a message...");
   mySerial.begin(9600);
-  mySerial.print(lastPacket.steer);
-  mySerial.print(",");
-  mySerial.println(lastPacket.throttle);
 }
 
 void loop() {
@@ -149,7 +147,7 @@ void loop() {
     }
   }
 
-  delay(100);
+  delay(20);
 
   if (lastPacket.steer<100) mySerial.print('0');
   if (lastPacket.steer<10) mySerial.print('0');
@@ -157,5 +155,7 @@ void loop() {
   mySerial.print(",");
   if (lastPacket.throttle<100) mySerial.print('0');
   if (lastPacket.throttle<10) mySerial.print('0');
-  mySerial.println(lastPacket.throttle);
+  mySerial.print(lastPacket.throttle);
+  mySerial.print(",");
+  mySerial.println((uint8_t)lastPacket.reverse);
 }
